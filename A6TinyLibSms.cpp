@@ -4,7 +4,7 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // any later version.
-// This program is distributed in the hope that it will be useful, 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
@@ -41,17 +41,12 @@ A6TinyLibSms::A6TinyLibSms() {
 
 // ================ Public members =============================================
 
-// Init and startup sequence for A6 board
-void A6TinyLibSms::init(int powerPin) {
-	// Power cycling A6 board. Follow this checklist:
-	// -> 'VCC' pin on A6 board should be connected to the power via any
-	//    appropriated MOSFET relay;
-	// -> 'PWR_KEY' pin on A6 board should be connected to its 'VCC';
-	// -> 'powerPin' on Arduino should be connected to the MOSFET relay's
-	//    driving point.
-	// -> If your relay has an inversed driver then you may change 'HIGH' and
- 	//    'LOW' values in the sequence below:
- 	logln(F("PWR CYCLING"));
+// Init and startup sequence for A6 board. Arguments:
+//   powerPin - output digital pin, connected to the MOSFET relay's driver
+//   sim_pin  - PIN code to unlock your SIM card (provide it when need!)
+void A6TinyLibSms::init(int powerPin, const char *sim_pin) {
+	// Power cycling:
+	logln(F("PWR CYCLING"));
 	#ifdef digitalWriteFastLib
 	pinModeFast(powerPin, OUTPUT);
 	digitalWriteFast(powerPin, LOW);
@@ -63,7 +58,7 @@ void A6TinyLibSms::init(int powerPin) {
 	delay(2000);
 	digitalWrite(powerPin, HIGH);
 	#endif
-
+	// Starting serial on Arduino board
 	#if UART_LIB==2
 	UART.begin(A6_UART_SPEED);
 	#else
@@ -88,8 +83,8 @@ void A6TinyLibSms::init(int powerPin) {
 	}
 	logln(F("SERIAL OK"));
 	// waiting for startup finished
-	logln(F("DELAY 10s"));
-	delay(10000);
+	logln(F("DELAY 15"));
+	delay(15000);
 	// clears startup messages
 	serialFlush();
 	logln(F("MODEM INIT"));
@@ -97,6 +92,21 @@ void A6TinyLibSms::init(int powerPin) {
 	writeAtCommand(_at_reset, 0);
 	readAtResponse();
 	logln(msg);
+	// SIM PIN - use it carefully, you may block you SIM card with wrong PIN code
+	if (sim_pin != NULL) {
+		char cmd[20];
+		strcpy_P(cmd, _at_cpin);
+		strcatc(cmd, '\"');
+		strcat(cmd, sim_pin);
+		strcatc(cmd, '\"');
+		serialFlush();
+		writeAtCommand(cmd);
+		delay(A6_CMD_TIMEOUT);
+		readAtResponse();
+		logln(msg);
+		logln(F("DELAY 10s"));
+		delay(10000);
+	}
 	// Caler ID on (do we really need this?)
 	writeAtCommand(_at_clip, 0);
 	readAtResponse();
@@ -346,4 +356,3 @@ int A6TinyLibSms::freeRAM() {
   	int v;
   	return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
 }
-	

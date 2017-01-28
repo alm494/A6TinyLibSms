@@ -4,7 +4,7 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // any later version.
-// This program is distributed in the hope that it will be useful, 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
@@ -18,7 +18,7 @@
 
 // Uncomment the following line to read all debug messages in terminal console.
 // Warning: this consumes both PROGMEM and RAM memory!
-//#define DEBUG
+#define DEBUG
 
 // Uncomment #define line to use 'SoftwareSerial', 'AltSoftSerial' or
 // embedded 'HardwareSerial' to comminicate with A6 board.
@@ -88,6 +88,8 @@ const char _at_cscs[] PROGMEM  = "+CSCS=GSM";
 const char _at_cmgr[] PROGMEM  = "+CMGR=";
 const char _at_cmgd[] PROGMEM  = "+CMGD=";
 const char _at_cmgs[] PROGMEM  = "+CMGS=";
+const char _at_cpin[] PROGMEM  = "+CPIN=";
+const char _at_cusd[] PROGMEM  = "+CUSD=";
 
 // c enums consume a little bit more PROGMEM, use constants instead:
 #define FIELD_BARGAIN 0
@@ -124,7 +126,7 @@ public:
 	A6TinyLibSms();
 	#endif
 
-	void init(int powerPin);
+	void init(int powerPin, const char *sim_pin = NULL);
 	uint8_t readSMS(uint8_t index);
 	void sendSMS(char *phoneNumber, char *message);
 	void deleteSMS(uint8_t index);
