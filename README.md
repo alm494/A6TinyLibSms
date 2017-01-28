@@ -21,13 +21,13 @@ Also you may define [<b>digitalWriteFast</b>](https://github.com/watterott/Ardui
 ## A6 module initialization
 
 To initialize A6 board a power cycling method is used: pass the digital output pin number to 'init()' method.<br>
-Do not even try to power up your A6 board directly from this output pin! Use any appropriated MOSFET relay instead.<br>
-Follow this checklist:
+Do not even try to power up your A6 board directly from this output pin! Use any appropriated MOSFET relay instead. Your relay schematic should be designed to open MOSFET with LOW value (GND) and close with HIGH (+5V).<br>
+For example, follow this checklist to use a low-side driver (p-channell MOSFET):
 
 * 'VCC' pin on A6 board should be connected to the +5V power via MOSFET relay;
 * 'PWR_KEY' pin on A6 board should be connected to its 'VCC';
 * 'POWER_PIN' on Arduino should be connected to the MOSFET driving point.
-* If your relay has an inversed driver then you may change 'HIGH' and 'LOW' values in the init() method.
+* Just change 'HIGH' and 'LOW' values in the init() method if you are using different design.
 
 ## How to use
 This example replies with 'Hello!' message to any incoming messages:
