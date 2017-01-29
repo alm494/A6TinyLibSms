@@ -44,7 +44,8 @@ A6TinyLibSms::A6TinyLibSms() {
 // Init and startup sequence for A6 board. Arguments:
 //   powerPin - output digital pin, connected to the MOSFET relay's driver
 //   sim_pin  - PIN code to unlock your SIM card (provide it when need!)
-void A6TinyLibSms::init(int powerPin, const char *sim_pin) {
+uint8_t A6TinyLibSms::init(int powerPin, const char *sim_pin) {
+	uint8_t retVal = 0b0;
 	// Power cycling:
 	logln(F("PWR CYCLING"));
 	#ifdef digitalWriteFastLib
@@ -75,8 +76,7 @@ void A6TinyLibSms::init(int powerPin, const char *sim_pin) {
 		UART->flush();
 		#endif
 		writeAtCommand(NULL, 0);
-		readAtResponse();
-		if (strstr(msg, "OK") != NULL) {
+		if (readAtResponse() == RES_OK) {
 			logln();
 			break;
 		}
@@ -90,7 +90,7 @@ void A6TinyLibSms::init(int powerPin, const char *sim_pin) {
 	logln(F("MODEM INIT"));
 	// Factory reset
 	writeAtCommand(_at_reset, 0);
-	readAtResponse();
+	retVal |= readAtResponse();
 	logln(msg);
 	// SIM PIN - use it carefully, you may block you SIM card with wrong PIN code
 	if (sim_pin != NULL) {
@@ -102,39 +102,40 @@ void A6TinyLibSms::init(int powerPin, const char *sim_pin) {
 		serialFlush();
 		writeAtCommand(cmd);
 		delay(A6_CMD_TIMEOUT);
-		readAtResponse();
+		retVal |= readAtResponse();
 		logln(msg);
 		logln(F("DELAY 10s"));
 		delay(10000);
 	}
 	// Caler ID on (do we really need this?)
 	writeAtCommand(_at_clip, 0);
-	readAtResponse();
+	retVal |= readAtResponse();
 	logln(msg);
 	// SMS text mode (not PDU)
 	writeAtCommand(_at_cmgf, 0);
-	readAtResponse();
+	retVal |= readAtResponse();
 	logln(msg);
 	// SMS indicator off, no logging for all incoming messages
 	writeAtCommand(_at_cnmi, 0);
-	readAtResponse();
+	retVal |= readAtResponse();
 	logln(msg);
 	// Set the SMS storage in device's memory. New incoming message will be stored in the
 	// first free memory slot. Indexes are beginning from 1.
 	writeAtCommand(_at_cmms, 0);
-	readAtResponse();
+	retVal |= readAtResponse();
 	logln(msg);
 	// set charset (do we really need this?)
 	writeAtCommand(_at_cscs, 0);
-	readAtResponse();
+	retVal |= readAtResponse();
 	logln(msg);
 	// Echo off
 	writeAtCommand(_at_e0, 0);
-	readAtResponse();
+	retVal |= readAtResponse();
 	logln(msg);
 	// Clear stored messages
 	clearMemory();
 	logln(F("READY!"));
+	return retVal;	// check this result with && <bitmask> when need
 }
 
 // Reads SMS content into public variables 'msg' and 'phone'
@@ -200,14 +201,14 @@ uint8_t A6TinyLibSms::readSMS(uint8_t index) {
 		logln(phone);
 		logln(msg);
 		deleteSMS(index);
-		return SMS_OK;
+		return RES_OK;
 	} else {
-		return SMS_ERROR;
+		return RES_ERROR;
 	}
 }
 
 // Use this to sends SMS
-void A6TinyLibSms::sendSMS(char *phoneNumber, char *message) {
+uint8_t A6TinyLibSms::sendSMS(char *phoneNumber, char *message) {
 	log(F("SMS SENT TO="));
 	logln(phoneNumber);
 	logln(message);
@@ -219,20 +220,19 @@ void A6TinyLibSms::sendSMS(char *phoneNumber, char *message) {
 	serialFlush();
 	writeAtCommand(cmd);
 	delay(A6_CMD_TIMEOUT);
-	readAtResponse();
+	serialFlush();
 	strcatc(message, char(0x1a));
 	writeString(message);
 	delay(10000);
-	readAtResponse();
 	logln(msg);
 	bufferOverflow();
+	return readAtResponse();
 }
 
 // Deletes SMS on A6 board
 void A6TinyLibSms::deleteSMS(uint8_t index) {
 	serialFlush();
 	writeAtCommand(_at_cmgd, index);
-	serialFlush();
 	log(F("SMS DELETED, ID="));
 	logln(index);
 }
@@ -248,7 +248,7 @@ void A6TinyLibSms::clearMemory() {
 // Checks for incoming SMS messages and fires a callback if something was found
 void A6TinyLibSms::checkIncomingSms(onSmsReceivedEvent *callBackFunction) {
 	for(uint8_t i = 1; i <= SMS_MEMORY_SIZE; i++) {
-		if (readSMS(i) == SMS_OK) {
+		if (readSMS(i) == RES_OK) {
 			callBackFunction(phone, msg);
 			yield();
 		}
@@ -306,7 +306,7 @@ void A6TinyLibSms::writeString(char *str) {
 }
 
 // Reads AT command response into public 'msg' variable
-void A6TinyLibSms::readAtResponse() {
+uint8_t A6TinyLibSms::readAtResponse() {
 	delay(A6_CMD_TIMEOUT);
 	uint8_t i = 0;
 	#if UART_LIB==2
@@ -321,6 +321,12 @@ void A6TinyLibSms::readAtResponse() {
 	}
 	#endif
 	msg[i] = '\0';
+	// check to return status
+	if (strstr(msg, "ERROR") != NULL) {
+		return RES_ERROR;
+	} else if (strstr(msg, "OK") != NULL) {
+		return RES_OK;
+	} else return RES_UNKNOWN;
 }
 
 // Clears all unread bytes from UART buffer

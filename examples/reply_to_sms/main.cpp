@@ -1,17 +1,21 @@
-// This example replies with 'Hello!' message to any incoming messages
+// This example replies with 'Hello!' message to any incoming SMS messages
 
 #include <Arduino.h>
 #include <A6TinyLibSms.h>
-#define POWER_PIN 5
+
+#define powerPin 5
+#define serialRx 8
+#define serialTx 9
 
 // using SoftwareSerial:
-A6TinyLibSms A6M(8, 9);
+A6TinyLibSms A6M(serialRx, serialTx);
 
 // using AltSoftSerial or HardwareSerial:
 //A6TinyLibSms A6M;
 
 void setup() {
-  A6M.init(POWER_PIN);
+  A6M.init(powerPin);
+  //A6M.init(powerPin, "1234"); // provide SIM PIN if required
 }
 
 // You shoud define a callback function here to be fired by incoming SMS:

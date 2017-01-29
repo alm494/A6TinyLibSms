@@ -91,12 +91,13 @@ const char _at_cmgs[] PROGMEM  = "+CMGS=";
 const char _at_cpin[] PROGMEM  = "+CPIN=";
 const char _at_cusd[] PROGMEM  = "+CUSD=";
 
-// c enums consume a little bit more PROGMEM, use constants instead:
+// c enums consume a little bit more PROGMEM, use constant macros instead:
 #define FIELD_BARGAIN 0
 #define FIELD_CALLERID 1
 #define FIELD_SMS_BODY 2
-#define SMS_OK 0
-#define SMS_ERROR 1
+#define RES_OK 0b00000001
+#define RES_ERROR 0b00000010
+#define RES_UNKNOWN 0b00000100
 
 // Callback function declaration:
 typedef void onSmsReceivedEvent (char *callerId, char *message);
@@ -126,9 +127,9 @@ public:
 	A6TinyLibSms();
 	#endif
 
-	void init(int powerPin, const char *sim_pin = NULL);
+	uint8_t init(int powerPin, const char *sim_pin = NULL);
 	uint8_t readSMS(uint8_t index);
-	void sendSMS(char *phoneNumber, char *message);
+	uint8_t sendSMS(char *phoneNumber, char *message);
 	void deleteSMS(uint8_t index);
 	void clearMemory();
 	void checkIncomingSms(onSmsReceivedEvent *callBackFunction);
@@ -146,7 +147,7 @@ private:
 	void writeAtCommand(char *cmd);
 	void writePString(const char *str);
 	void writeString(char *str);
-	void readAtResponse();
+	uint8_t readAtResponse();
 	void serialFlush();
 	void strcatc(char *str, char c);
 	bool bufferOverflow();
